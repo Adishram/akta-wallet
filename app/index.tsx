@@ -1,31 +1,60 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import CurvedLinesGraphic from '../components/CurvedLinesGraphic';
+import LoginCard from '../components/LoginCard';
 import { useWallet } from '../contexts/WalletContext';
+import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LandingScreen() {
   const router = useRouter();
-  const { isConnected } = useWallet();
+  const { isConnected, connectWallet, isConnecting } = useWallet();
+  const [showLogin, setShowLogin] = useState(false);
+  const slideAnim = useRef(new Animated.Value(height)).current;
 
-  React.useEffect(() => {
+  const [fontsLoaded] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+  });
+
+  useEffect(() => {
     if (isConnected) {
       router.replace('/(tabs)');
     }
   }, [isConnected]);
 
   const handleGetStarted = () => {
-    router.push('/login');
+    setShowLogin(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 10,
+    }).start();
   };
+
+  const handleConnect = async () => {
+    try {
+      await connectWallet();
+    } catch (error) {
+      console.error('Connection failed:', error);
+    }
+  };
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <LinearGradient
@@ -47,16 +76,30 @@ export default function LandingScreen() {
         </Text>
       </View>
 
-      {/* Get Started Button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.getStartedButton}
-          onPress={handleGetStarted}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.getStartedText}>Get Started</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Get Started Button - Only show if login not visible */}
+      {!showLogin && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.getStartedButton}
+            onPress={handleGetStarted}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.getStartedText}>Get Started</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Animated Login Card */}
+      <Animated.View
+        style={[
+          styles.loginCardWrapper,
+          {
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        <LoginCard onConnectPress={handleConnect} loading={isConnecting} />
+      </Animated.View>
     </LinearGradient>
   );
 }
@@ -67,13 +110,13 @@ const styles = StyleSheet.create({
   },
   brandName: {
     position: 'absolute',
-    top: 60,
+    top: 80,
     left: 24,
-    fontSize: 32,
+    fontSize: 72,
     fontWeight: '700',
     fontStyle: 'italic',
     color: '#FFFFFF',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   graphic: {
     top: height * 0.15,
@@ -90,6 +133,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0052CC',
     lineHeight: 44,
+    fontFamily: 'Montserrat_700Bold',
   },
   buttonContainer: {
     position: 'absolute',
@@ -113,5 +157,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  loginCardWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

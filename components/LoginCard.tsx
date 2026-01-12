@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  TextInput, 
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Linking,
+  Alert,
+} from 'react-native';
 import { useWallet } from '../contexts/WalletContext';
+import { MetaMaskIcon, CoreWalletIcon } from './Icons';
 
 interface LoginCardProps {
   onConnectPress: () => void;
@@ -18,6 +31,120 @@ const LoginCard: React.FC<LoginCardProps> = ({ onConnectPress, loading = false }
     }
   };
 
+  const handleMetaMaskConnect = async () => {
+    try {
+      // Use the official MetaMask deep link format for iOS
+      const metamaskDeepLink = 'metamask://';
+      
+      const canOpen = await Linking.canOpenURL(metamaskDeepLink);
+      console.log('Can open MetaMask:', canOpen);
+      
+      if (canOpen) {
+        // Open MetaMask directly
+        await Linking.openURL(metamaskDeepLink);
+        
+        // After opening MetaMask, prompt user to enter their address
+        setTimeout(() => {
+          Alert.alert(
+            'Connect Wallet',
+            'After connecting in MetaMask, copy your wallet address and paste it here.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Enter Address', onPress: () => setShowAddressModal(true) },
+            ]
+          );
+        }, 2000);
+      } else {
+        // Try alternate deep link formats
+        const alternateLinks = [
+          'https://metamask.app.link/',
+          'wc://',
+        ];
+        
+        let opened = false;
+        for (const link of alternateLinks) {
+          if (await Linking.canOpenURL(link)) {
+            await Linking.openURL(link);
+            opened = true;
+            break;
+          }
+        }
+        
+        if (!opened) {
+          // MetaMask not installed
+          Alert.alert(
+            'MetaMask Not Found',
+            'MetaMask wallet app is not detected. Would you like to install it or enter your address manually?',
+            [
+              { 
+                text: 'Install MetaMask', 
+                onPress: () => Linking.openURL('https://metamask.io/download/') 
+              },
+              { text: 'Enter Address', onPress: () => setShowAddressModal(true) },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          );
+        } else {
+          setTimeout(() => {
+            Alert.alert(
+              'Connect Wallet',
+              'Copy your wallet address from MetaMask and paste it here.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Enter Address', onPress: () => setShowAddressModal(true) },
+              ]
+            );
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error('MetaMask connection error:', error);
+      Alert.alert('Error', 'Failed to open MetaMask. Please enter your address manually.');
+      setShowAddressModal(true);
+    }
+  };
+
+  const handleCoreWalletConnect = async () => {
+    try {
+      // Try to open Core Wallet deep link
+      const coreUrl = 'core://';
+      const canOpen = await Linking.canOpenURL(coreUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(coreUrl);
+        
+        // After opening Core, prompt user to enter their address
+        setTimeout(() => {
+          Alert.alert(
+            'Connect Wallet',
+            'After connecting in Core Wallet, paste your wallet address here.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Enter Address', onPress: () => setShowAddressModal(true) },
+            ]
+          );
+        }, 1000);
+      } else {
+        // Core Wallet not installed
+        Alert.alert(
+          'Core Wallet Not Found',
+          'Core Wallet is not installed on this device. Would you like to install it or enter your address manually?',
+          [
+            { 
+              text: 'Install Core', 
+              onPress: () => Linking.openURL('https://core.app/') 
+            },
+            { text: 'Enter Address', onPress: () => setShowAddressModal(true) },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Core Wallet connection error:', error);
+      setShowAddressModal(true);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.handle} />
@@ -25,22 +152,36 @@ const LoginCard: React.FC<LoginCardProps> = ({ onConnectPress, loading = false }
       <Text style={styles.title}>Connect Your Wallet</Text>
       
       <Text style={styles.subtitle}>
-        Connect with MetaMask or enter your wallet{'\n'}
-        address to view your crypto assets
+        Connect with MetaMask or Core Wallet{'\n'}
+        to view your crypto assets
       </Text>
       
+      {/* MetaMask Button */}
       <TouchableOpacity 
         style={[styles.primaryButton, loading && styles.buttonDisabled]} 
-        onPress={onConnectPress}
+        onPress={handleMetaMaskConnect}
         disabled={loading}
       >
         <View style={styles.buttonContent}>
-          <View style={styles.metamaskIcon}>
-            <Text style={styles.metamaskLetter}>M</Text>
+          <View style={styles.iconWrapper}>
+            <MetaMaskIcon size={28} />
           </View>
           <Text style={styles.primaryButtonText}>
             {loading ? 'Connecting...' : 'Connect with MetaMask'}
           </Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Core Wallet Button - Black */}
+      <TouchableOpacity 
+        style={styles.coreWalletButton} 
+        onPress={handleCoreWalletConnect}
+      >
+        <View style={styles.buttonContent}>
+          <View style={styles.iconWrapper}>
+            <CoreWalletIcon size={28} />
+          </View>
+          <Text style={styles.coreButtonText}>Connect with Core Wallet</Text>
         </View>
       </TouchableOpacity>
       
@@ -57,27 +198,6 @@ const LoginCard: React.FC<LoginCardProps> = ({ onConnectPress, loading = false }
         <Text style={styles.secondaryButtonText}>Enter Wallet Address</Text>
       </TouchableOpacity>
       
-      <View style={styles.walletOptions}>
-        <View style={styles.walletOption}>
-          <View style={[styles.walletIcon, { backgroundColor: '#F6851B20' }]}>
-            <Text style={styles.walletInitial}>M</Text>
-          </View>
-          <Text style={styles.walletName}>MetaMask</Text>
-        </View>
-        <View style={styles.walletOption}>
-          <View style={[styles.walletIcon, { backgroundColor: '#0052FF20' }]}>
-            <Text style={styles.walletInitial}>C</Text>
-          </View>
-          <Text style={styles.walletName}>Coinbase</Text>
-        </View>
-        <View style={styles.walletOption}>
-          <View style={[styles.walletIcon, { backgroundColor: '#3396FF20' }]}>
-            <Text style={styles.walletInitial}>T</Text>
-          </View>
-          <Text style={styles.walletName}>Trust</Text>
-        </View>
-      </View>
-      
       <Text style={styles.termsText}>
         By connecting, you agree to our{' '}
         <Text style={styles.linkText}>Terms of Service</Text>
@@ -90,40 +210,49 @@ const LoginCard: React.FC<LoginCardProps> = ({ onConnectPress, loading = false }
         animationType="slide"
         onRequestClose={() => setShowAddressModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter Wallet Address</Text>
-            <Text style={styles.modalSubtitle}>
-              Paste your Ethereum wallet address to view your balance
-            </Text>
-            <TextInput
-              style={styles.addressInput}
-              placeholder="0x..."
-              placeholderTextColor="#9CA3AF"
-              value={inputAddress}
-              onChangeText={setInputAddress}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={() => {
-                  setShowAddressModal(false);
-                  setInputAddress('');
-                }}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalConfirmButton}
-                onPress={handleSubmitAddress}
-              >
-                <Text style={styles.modalConfirmText}>Connect</Text>
-              </TouchableOpacity>
-            </View>
+            <ScrollView 
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <Text style={styles.modalTitle}>Enter Wallet Address</Text>
+              <Text style={styles.modalSubtitle}>
+                Paste your Ethereum wallet address to view your balance
+              </Text>
+              <TextInput
+                style={styles.addressInput}
+                placeholder="0x..."
+                placeholderTextColor="#9CA3AF"
+                value={inputAddress}
+                onChangeText={setInputAddress}
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline={false}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelButton}
+                  onPress={() => {
+                    setShowAddressModal(false);
+                    setInputAddress('');
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.modalConfirmButton}
+                  onPress={handleSubmitAddress}
+                >
+                  <Text style={styles.modalConfirmText}>Connect</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -157,6 +286,7 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     textAlign: 'center',
     marginBottom: 12,
+    fontFamily: 'Montserrat_700Bold',
   },
   subtitle: {
     fontSize: 15,
@@ -164,38 +294,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
   },
   primaryButton: {
     backgroundColor: '#F6851B',
     borderRadius: 50,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
+    marginBottom: 12,
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  coreWalletButton: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 50,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  metamaskIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+  iconWrapper: {
     marginRight: 10,
-  },
-  metamaskLetter: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F6851B',
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  coreButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   divider: {
     flexDirection: 'row',
@@ -211,6 +345,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#9CA3AF',
     fontSize: 14,
+    fontFamily: 'Montserrat_400Regular',
   },
   secondaryButton: {
     borderWidth: 1.5,
@@ -223,39 +358,14 @@ const styles = StyleSheet.create({
     color: '#0066FF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  walletOptions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 20,
-  },
-  walletOption: {
-    alignItems: 'center',
-  },
-  walletIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  walletInitial: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A2E',
-  },
-  walletName: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   termsText: {
     fontSize: 13,
     color: '#9CA3AF',
     textAlign: 'center',
     marginTop: 24,
+    fontFamily: 'Montserrat_400Regular',
   },
   linkText: {
     color: '#0066FF',
@@ -270,6 +380,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalScrollContent: {
     padding: 24,
     paddingBottom: 40,
   },
@@ -279,12 +392,14 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     textAlign: 'center',
     marginBottom: 8,
+    fontFamily: 'Montserrat_700Bold',
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
+    fontFamily: 'Montserrat_400Regular',
   },
   addressInput: {
     borderWidth: 1.5,
@@ -312,6 +427,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   modalConfirmButton: {
     flex: 1,
@@ -324,6 +440,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
   },
 });
 

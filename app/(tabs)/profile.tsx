@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,25 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWallet } from '../../contexts/WalletContext';
+import { useUser } from '../../contexts/UserContext';
 import { useRouter } from 'expo-router';
+import { 
+  NotificationsIcon, 
+  SettingsIcon, 
+  HelpIcon, 
+  DocumentIcon, 
+  DisconnectIcon,
+  ProfileIcon,
+} from '../../components/Icons';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { address, balance, chainName, disconnectWallet } = useWallet();
+  const { profile } = useUser();
 
   const shortenAddress = (addr: string) => {
     if (!addr) return '...';
@@ -39,30 +50,56 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: '🔔', title: 'Notifications', subtitle: 'Manage alerts' },
-    { icon: '🔐', title: 'Security', subtitle: 'Protect your wallet' },
-    { icon: '🌐', title: 'Network', subtitle: chainName || 'Ethereum' },
-    { icon: '📱', title: 'App Settings', subtitle: 'Preferences' },
-    { icon: '❓', title: 'Help & Support', subtitle: 'Get assistance' },
-    { icon: '📄', title: 'Terms of Service', subtitle: 'Legal info' },
+    { 
+      icon: <NotificationsIcon size={24} color="#1A1A2E" />, 
+      title: 'Notifications', 
+      subtitle: 'Manage alerts',
+      route: '/(tabs)/settings/notifications',
+    },
+    { 
+      icon: <SettingsIcon size={24} color="#1A1A2E" />, 
+      title: 'App Settings', 
+      subtitle: 'Profile & preferences',
+      route: '/(tabs)/settings/app-settings',
+    },
+    { 
+      icon: <HelpIcon size={24} color="#1A1A2E" />, 
+      title: 'Help & Support', 
+      subtitle: 'Get assistance',
+      route: '/(tabs)/settings/help',
+    },
+    { 
+      icon: <DocumentIcon size={24} color="#1A1A2E" />, 
+      title: 'Terms of Service', 
+      subtitle: 'Legal info',
+      route: '/(tabs)/settings/terms',
+    },
   ];
 
   return (
-    <LinearGradient colors={['#0066FF', '#4DA6FF', '#E8F4FF', '#FFFFFF']} locations={[0, 0.15, 0.4, 0.6]} style={styles.container}>
+    <LinearGradient 
+      colors={['#0066FF', '#4DA6FF', '#E8F4FF', '#FFFFFF']} 
+      locations={[0, 0.15, 0.4, 0.6]} 
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile 👤</Text>
+          <Text style={styles.headerTitle}>Profile</Text>
         </View>
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.avatar}>
-              <Text style={styles.avatarText}>Ä</Text>
-            </LinearGradient>
+            {profile.profilePicture ? (
+              <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+            ) : (
+              <LinearGradient colors={['#667eea', '#764ba2']} style={styles.avatar}>
+                <Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text>
+              </LinearGradient>
+            )}
           </View>
-          <Text style={styles.walletLabel}>Connected Wallet</Text>
+          <Text style={styles.userName}>{profile.name}</Text>
           <Text style={styles.walletAddress}>{shortenAddress(address || '')}</Text>
           <View style={styles.balanceRow}>
             <Text style={styles.balanceValue}>{balance} ETH</Text>
@@ -75,8 +112,14 @@ export default function ProfileScreen() {
         {/* Menu Items */}
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuItem}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.menuItem}
+              onPress={() => router.push(item.route as any)}
+            >
+              <View style={styles.menuIconContainer}>
+                {item.icon}
+              </View>
               <View style={styles.menuContent}>
                 <Text style={styles.menuTitle}>{item.title}</Text>
                 <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -88,7 +131,8 @@ export default function ProfileScreen() {
 
         {/* Disconnect Button */}
         <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
-          <Text style={styles.disconnectText}>🔌 Disconnect Wallet</Text>
+          <DisconnectIcon size={20} color="#EF4444" />
+          <Text style={styles.disconnectText}>Disconnect Wallet</Text>
         </TouchableOpacity>
 
         {/* Version */}
@@ -123,9 +167,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
   avatarText: { fontSize: 32, fontWeight: '700', color: '#FFFFFF' },
-  walletLabel: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  walletAddress: { fontSize: 16, fontWeight: '600', color: '#1A1A2E', fontFamily: 'monospace' },
+  userName: { fontSize: 22, fontWeight: '700', color: '#1A1A2E' },
+  walletAddress: { fontSize: 14, color: '#9CA3AF', marginTop: 4, fontFamily: 'monospace' },
   balanceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 12 },
   balanceValue: { fontSize: 24, fontWeight: '700', color: '#1A1A2E' },
   chainBadge: { backgroundColor: '#0066FF15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
@@ -139,7 +188,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
-  menuIcon: { fontSize: 24, marginRight: 16 },
+  menuIconContainer: { marginRight: 16 },
   menuContent: { flex: 1 },
   menuTitle: { fontSize: 16, fontWeight: '600', color: '#1A1A2E' },
   menuSubtitle: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
@@ -151,6 +200,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
   },
   disconnectText: { fontSize: 16, fontWeight: '600', color: '#EF4444' },
   versionText: { textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginTop: 24 },

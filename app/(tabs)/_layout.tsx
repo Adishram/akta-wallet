@@ -1,22 +1,23 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { HomeIcon, PaymentsIcon, OfflineIcon, ProfileIcon } from '../../components/Icons';
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    home: '🏠',
-    payments: '💳',
-    offline: '📴',
-    profile: '👤',
-  };
-
-  return (
-    <View style={styles.tabIcon}>
-      <Text style={[styles.icon, focused && styles.iconFocused]}>
-        {icons[name]}
-      </Text>
-    </View>
-  );
+  const color = focused ? '#0066FF' : '#9CA3AF';
+  
+  switch (name) {
+    case 'home':
+      return <HomeIcon size={24} color={color} />;
+    case 'payments':
+      return <PaymentsIcon size={24} color={color} />;
+    case 'offline':
+      return <OfflineIcon size={24} color={color} />;
+    case 'profile':
+      return <ProfileIcon size={24} color={color} />;
+    default:
+      return null;
+  }
 }
 
 export default function TabsLayout() {
@@ -58,6 +59,12 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }
@@ -78,16 +85,5 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  tabIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 24,
-    opacity: 0.6,
-  },
-  iconFocused: {
-    opacity: 1,
   },
 });

@@ -12,13 +12,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useWallet } from '../../contexts/WalletContext';
+import { useUser } from '../../contexts/UserContext';
 import { useRouter } from 'expo-router';
+import { SendIcon, ReceiveIcon, ScanIcon, EmptyInboxIcon } from '../../components/Icons';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
   const { address, balance, chainName, isConnected, refreshBalance } = useWallet();
+  const { profile } = useUser();
   const [refreshing, setRefreshing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
@@ -44,7 +47,6 @@ export default function HomeScreen() {
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     setShowScanner(false);
-    // Handle payment request from QR
     console.log('Scanned payment request:', data);
   };
 
@@ -70,7 +72,7 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back! 👋</Text>
+          <Text style={styles.greeting}>Welcome back, {profile.name}!</Text>
           <Text style={styles.appName}>Äkta</Text>
         </View>
 
@@ -84,27 +86,23 @@ export default function HomeScreen() {
 
         {/* QR Scanner Button */}
         <TouchableOpacity style={styles.scanButton} onPress={handleScan}>
-          <Text style={styles.scanIcon}>📷</Text>
+          <ScanIcon size={24} color="#FFFFFF" />
           <Text style={styles.scanText}>Scan Payment Request</Text>
         </TouchableOpacity>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Only Send and Receive */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>💸</Text>
+            <View style={styles.actionIconBg}>
+              <SendIcon size={24} color="#0066FF" />
+            </View>
             <Text style={styles.actionText}>Send</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>📥</Text>
+            <View style={styles.actionIconBg}>
+              <ReceiveIcon size={24} color="#10B981" />
+            </View>
             <Text style={styles.actionText}>Receive</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>🔄</Text>
-            <Text style={styles.actionText}>Swap</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>📊</Text>
-            <Text style={styles.actionText}>History</Text>
           </TouchableOpacity>
         </View>
 
@@ -112,7 +110,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <EmptyInboxIcon size={48} color="#9CA3AF" />
             <Text style={styles.emptyText}>No recent transactions</Text>
           </View>
         </View>
@@ -179,21 +177,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#0066FF',
     borderRadius: 16,
     padding: 18,
+    gap: 10,
   },
-  scanIcon: { fontSize: 24, marginRight: 10 },
   scanText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     marginHorizontal: 20,
     marginTop: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
+    gap: 48,
   },
   actionBtn: { alignItems: 'center' },
-  actionIcon: { fontSize: 28, marginBottom: 8 },
-  actionText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
+  actionIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionText: { fontSize: 14, color: '#1A1A2E', fontWeight: '600' },
   section: { marginHorizontal: 20, marginTop: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A2E', marginBottom: 12 },
   emptyState: {
@@ -202,8 +209,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
   },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 14, color: '#9CA3AF' },
+  emptyText: { fontSize: 14, color: '#9CA3AF', marginTop: 12 },
   scannerContainer: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
   scannerOverlay: {
